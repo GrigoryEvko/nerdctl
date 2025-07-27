@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/klauspost/compress/zstd"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 
 	"github.com/containerd/containerd/v2/core/content"
@@ -30,13 +29,25 @@ import (
 	"github.com/containerd/containerd/v2/core/images/converter/uncompress"
 	"github.com/containerd/containerd/v2/pkg/archive/compression"
 	"github.com/containerd/errdefs"
+	"github.com/containerd/log"
 
 	"github.com/containerd/nerdctl/v2/pkg/api/types"
+	compzstd "github.com/containerd/nerdctl/v2/pkg/compression/zstd"
 )
 
 // ZstdLayerConvertFunc converts legacy tar.gz layers into zstd layers with
 // the specified compression level.
 func ZstdLayerConvertFunc(options types.ImageConvertOptions) (converter.ConvertFunc, error) {
+	// Get the appropriate compressor
+	compressor := compzstd.GetCompressor()
+	
+	// Validate compression level
+	if options.ZstdCompressionLevel > compressor.MaxCompressionLevel() {
+		log.L.Warnf("Requested zstd level %d exceeds maximum %d for %s, using maximum", 
+			options.ZstdCompressionLevel, compressor.MaxCompressionLevel(), compressor.Name())
+		options.ZstdCompressionLevel = compressor.MaxCompressionLevel()
+	}
+	
 	return func(ctx context.Context, cs content.Store, desc ocispec.Descriptor) (*ocispec.Descriptor, error) {
 		if !images.IsLayerType(desc.MediaType) {
 			// No conversion. No need to return an error here.
@@ -84,7 +95,7 @@ func ZstdLayerConvertFunc(options types.ImageConvertOptions) (converter.ConvertF
 		}
 
 		pr, pw := io.Pipe()
-		enc, err := zstd.NewWriter(pw, zstd.WithEncoderLevel(zstd.EncoderLevelFromZstd(options.ZstdCompressionLevel)))
+		enc, err := compressor.NewWriter(pw, options.ZstdCompressionLevel)
 		if err != nil {
 			return nil, err
 		}

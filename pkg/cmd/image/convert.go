@@ -44,6 +44,7 @@ import (
 
 	"github.com/containerd/nerdctl/v2/pkg/api/types"
 	"github.com/containerd/nerdctl/v2/pkg/clientutil"
+	compzstd "github.com/containerd/nerdctl/v2/pkg/compression/zstd"
 	converterutil "github.com/containerd/nerdctl/v2/pkg/imgutil/converter"
 	"github.com/containerd/nerdctl/v2/pkg/platformutil"
 	"github.com/containerd/nerdctl/v2/pkg/referenceutil"
@@ -80,6 +81,22 @@ func Convert(ctx context.Context, client *containerd.Client, srcRawRef, targetRa
 	err = EnsureAllContent(ctx, client, srcRef, platMC, options.GOptions)
 	if err != nil {
 		return err
+	}
+
+	// Debug compression info if requested
+	if options.DebugCompression && (options.Zstd || options.ZstdChunked) {
+		compressor := compzstd.GetCompressor()
+		fmt.Fprintf(options.Stdout, "=== Compression Debug Info ===\n")
+		fmt.Fprintf(options.Stdout, "Implementation: %s\n", compressor.Name())
+		fmt.Fprintf(options.Stdout, "Max Compression Level: %d\n", compressor.MaxCompressionLevel())
+		fmt.Fprintf(options.Stdout, "libzstd Available: %v\n", compressor.IsLibzstdAvailable())
+		if options.Zstd {
+			fmt.Fprintf(options.Stdout, "Requested zstd Level: %d\n", options.ZstdCompressionLevel)
+		}
+		if options.ZstdChunked {
+			fmt.Fprintf(options.Stdout, "Requested zstd:chunked Level: %d\n", options.ZstdChunkedCompressionLevel)
+		}
+		fmt.Fprintf(options.Stdout, "=============================\n\n")
 	}
 
 	estargz := options.Estargz
@@ -293,6 +310,15 @@ func getZstdConverter(options types.ImageConvertOptions) (converter.ConvertFunc,
 }
 
 func getZstdchunkedConverter(options types.ImageConvertOptions) (converter.ConvertFunc, error) {
+	// Get the appropriate compressor
+	compressor := compzstd.GetCompressor()
+	
+	// Validate compression level
+	if options.ZstdChunkedCompressionLevel > compressor.MaxCompressionLevel() {
+		log.L.Warnf("Requested zstd:chunked level %d exceeds maximum %d for %s, using maximum", 
+			options.ZstdChunkedCompressionLevel, compressor.MaxCompressionLevel(), compressor.Name())
+		options.ZstdChunkedCompressionLevel = compressor.MaxCompressionLevel()
+	}
 
 	esgzOpts := []estargz.Option{
 		estargz.WithChunkSize(options.ZstdChunkedChunkSize),
@@ -312,7 +338,11 @@ func getZstdchunkedConverter(options types.ImageConvertOptions) (converter.Conve
 		var ignored []string
 		esgzOpts = append(esgzOpts, estargz.WithAllowPrioritizeNotFound(&ignored))
 	}
-	return zstdchunkedconvert.LayerConvertFuncWithCompressionLevel(zstd.EncoderLevelFromZstd(options.ZstdChunkedCompressionLevel), esgzOpts...), nil
+	
+	// Note: stargz-snapshotter's LayerConvertFuncWithCompressionLevel expects an encoder level
+	// from klauspost/compress. This is temporary until stargz-snapshotter is updated.
+	return zstdchunkedconvert.LayerConvertFuncWithCompressionLevel(
+		zstd.EncoderLevelFromZstd(options.ZstdChunkedCompressionLevel), esgzOpts...), nil
 }
 
 func getNydusConvertOpts(options types.ImageConvertOptions) (*nydusconvert.PackOption, error) {

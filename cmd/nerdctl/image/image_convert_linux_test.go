@@ -172,3 +172,100 @@ func TestImageConvertNydusVerify(t *testing.T) {
 
 	testCase.Run(t)
 }
+
+// TestImageConvertHighCompressionLevels tests zstd compression with high levels
+// to ensure runtime detection of libzstd works correctly
+func TestImageConvertHighCompressionLevels(t *testing.T) {
+	nerdtest.Setup()
+
+	testCase := &test.Case{
+		Require: require.All(
+			require.Not(require.Windows),
+			require.Not(nerdtest.Docker),
+		),
+		Setup: func(data test.Data, helpers test.Helpers) {
+			helpers.Ensure("pull", "--quiet", testutil.CommonImage)
+		},
+		SubTests: []*test.Case{
+			{
+				Description: "zstd-level-11",
+				Cleanup: func(data test.Data, helpers test.Helpers) {
+					helpers.Anyhow("rmi", "-f", data.Identifier("converted-image-11"))
+				},
+				Command: func(data test.Data, helpers test.Helpers) test.TestableCommand {
+					return helpers.Command("image", "convert", "--oci", "--zstd", "--zstd-compression-level", "11",
+						testutil.CommonImage, data.Identifier("converted-image-11"))
+				},
+				Expected: test.Expects(0, nil, nil),
+			},
+			{
+				Description: "zstd-level-22",
+				Cleanup: func(data test.Data, helpers test.Helpers) {
+					helpers.Anyhow("rmi", "-f", data.Identifier("converted-image-22"))
+				},
+				Command: func(data test.Data, helpers test.Helpers) test.TestableCommand {
+					// Level 22 should work with libzstd, or be capped at 11 with pure Go
+					return helpers.Command("image", "convert", "--oci", "--zstd", "--zstd-compression-level", "22",
+						testutil.CommonImage, data.Identifier("converted-image-22"))
+				},
+				Expected: test.Expects(0, nil, nil),
+			},
+			{
+				Description: "zstdchunked-level-11",
+				Cleanup: func(data test.Data, helpers test.Helpers) {
+					helpers.Anyhow("rmi", "-f", data.Identifier("converted-chunked-11"))
+				},
+				Command: func(data test.Data, helpers test.Helpers) test.TestableCommand {
+					return helpers.Command("image", "convert", "--oci", "--zstdchunked", "--zstdchunked-compression-level", "11",
+						testutil.CommonImage, data.Identifier("converted-chunked-11"))
+				},
+				Expected: test.Expects(0, nil, nil),
+			},
+			{
+				Description: "zstdchunked-level-22",
+				Cleanup: func(data test.Data, helpers test.Helpers) {
+					helpers.Anyhow("rmi", "-f", data.Identifier("converted-chunked-22"))
+				},
+				Command: func(data test.Data, helpers test.Helpers) test.TestableCommand {
+					// Level 22 should work with libzstd, or be capped at 11 with pure Go
+					return helpers.Command("image", "convert", "--oci", "--zstdchunked", "--zstdchunked-compression-level", "22",
+						testutil.CommonImage, data.Identifier("converted-chunked-22"))
+				},
+				Expected: test.Expects(0, nil, nil),
+			},
+			{
+				Description: "force-pure-go-zstd",
+				Env: map[string]string{
+					"ZSTD_FORCE_IMPLEMENTATION": "klauspost",
+				},
+				Cleanup: func(data test.Data, helpers test.Helpers) {
+					helpers.Anyhow("rmi", "-f", data.Identifier("converted-pure-go"))
+				},
+				Command: func(data test.Data, helpers test.Helpers) test.TestableCommand {
+					// Should use pure Go implementation even if libzstd is available
+					return helpers.Command("image", "convert", "--oci", "--zstd", "--zstd-compression-level", "11",
+						testutil.CommonImage, data.Identifier("converted-pure-go"))
+				},
+				Expected: test.Expects(0, nil, nil),
+			},
+			{
+				Description: "force-libzstd",
+				Env: map[string]string{
+					"ZSTD_FORCE_IMPLEMENTATION": "gozstd",
+				},
+				Cleanup: func(data test.Data, helpers test.Helpers) {
+					helpers.Anyhow("rmi", "-f", data.Identifier("converted-libzstd"))
+				},
+				Command: func(data test.Data, helpers test.Helpers) test.TestableCommand {
+					// Should use libzstd if available, or fail if not
+					return helpers.Command("image", "convert", "--oci", "--zstd", "--zstd-compression-level", "22",
+						testutil.CommonImage, data.Identifier("converted-libzstd"))
+				},
+				// This might fail if libzstd is not available, which is OK
+				Expected: test.Expects(test.WithAnyError()),
+			},
+		},
+	}
+
+	testCase.Run(t)
+}

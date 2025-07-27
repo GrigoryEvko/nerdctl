@@ -74,6 +74,11 @@ type ImageConvertOptions struct {
 	NydusOptions
 	OverlaybdOptions
 	SociConvertOptions
+
+	// #region debug flags
+	// DebugCompression shows detailed compression information
+	DebugCompression bool
+	// #endregion
 }
 
 // EstargzOptions contains eStargz conversion options

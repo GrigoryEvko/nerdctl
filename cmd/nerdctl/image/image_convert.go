@@ -107,6 +107,10 @@ func convertCommand() *cobra.Command {
 	cmd.Flags().Bool("all-platforms", false, "Convert content for all platforms")
 	// #endregion
 
+	// #region debug flags
+	cmd.Flags().Bool("debug-compression", false, "Show detailed compression information (EXPERIMENTAL)")
+	// #endregion
+
 	return cmd
 }
 
@@ -160,6 +164,10 @@ func convertOptions(cmd *cobra.Command) (types.ImageConvertOptions, error) {
 	if err != nil {
 		return types.ImageConvertOptions{}, err
 	}
+	// Use config default if flag wasn't explicitly set
+	if !cmd.Flags().Changed("zstd-compression-level") && globalOptions.Compression != nil && globalOptions.Compression.ZstdCompressionLevel > 0 {
+		zstdCompressionLevel = globalOptions.Compression.ZstdCompressionLevel
+	}
 	// #endregion
 
 	// #region zstd:chunked flags
@@ -170,6 +178,10 @@ func convertOptions(cmd *cobra.Command) (types.ImageConvertOptions, error) {
 	zstdChunkedCompressionLevel, err := cmd.Flags().GetInt("zstdchunked-compression-level")
 	if err != nil {
 		return types.ImageConvertOptions{}, err
+	}
+	// Use config default if flag wasn't explicitly set
+	if !cmd.Flags().Changed("zstdchunked-compression-level") && globalOptions.Compression != nil && globalOptions.Compression.ZstdChunkedCompressionLevel > 0 {
+		zstdChunkedCompressionLevel = globalOptions.Compression.ZstdChunkedCompressionLevel
 	}
 	zstdChunkedChunkSize, err := cmd.Flags().GetInt("zstdchunked-chunk-size")
 	if err != nil {
@@ -255,6 +267,14 @@ func convertOptions(cmd *cobra.Command) (types.ImageConvertOptions, error) {
 		return types.ImageConvertOptions{}, err
 	}
 	// #endregion
+
+	// #region debug flags
+	debugCompression, err := cmd.Flags().GetBool("debug-compression")
+	if err != nil {
+		return types.ImageConvertOptions{}, err
+	}
+	// #endregion
+
 	return types.ImageConvertOptions{
 		GOptions: globalOptions,
 		Format:   format,
@@ -305,6 +325,9 @@ func convertOptions(cmd *cobra.Command) (types.ImageConvertOptions, error) {
 				MinLayerSize: sociMinLayerSize,
 			},
 		},
+		// #region debug flags
+		DebugCompression: debugCompression,
+		// #endregion
 		Stdout: cmd.OutOrStdout(),
 	}, nil
 }

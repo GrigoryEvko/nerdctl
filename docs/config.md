@@ -30,6 +30,14 @@ userns_remap   = ""
 dns            = ["8.8.8.8", "1.1.1.1"]
 dns_opts       = ["ndots:1", "timeout:2"]
 dns_search     = ["example.com", "example.org"]
+
+[compression]
+# zstd implementation to use: "auto" (default), "klauspost", "gozstd"
+zstd_implementation = "auto"
+# Default compression level for zstd (1-22)
+zstd_compression_level = 3
+# Default compression level for zstd:chunked (1-22)
+zstd_chunked_compression_level = 3
 ```
 
 ## Properties
@@ -56,6 +64,14 @@ dns_search     = ["example.com", "example.org"]
 | `dns`               |                                    |                           | Set global DNS servers for containers                                                                                                                  | Since 2.1.3 |
 | `dns_opts`          |                                    |                           | Set global DNS options for containers                                                                                                                         | Since 2.1.3 |
 | `dns_search`        |                                    |                           | Set global DNS search domains for containers                                                                                                           | Since 2.1.3 |
+
+### Compression properties
+
+| TOML property                           | CLI flag                                | Env var                              | Description                                                                          | Availability |
+|-----------------------------------------|-----------------------------------------|--------------------------------------|--------------------------------------------------------------------------------------|--------------|
+| `compression.zstd_implementation`       |                                         | `ZSTD_FORCE_IMPLEMENTATION`          | zstd implementation to use: "auto" (default), "klauspost", "gozstd"                 | Since 2.2.0  |
+| `compression.zstd_compression_level`    | `--zstd-compression-level`             |                                      | Default compression level for zstd (1-22)                                           | Since 2.2.0  |
+| `compression.zstd_chunked_compression_level` | `--zstdchunked-compression-level` |                                      | Default compression level for zstd:chunked (1-22)                                   | Since 2.2.0  |
 
 The properties are parsed in the following precedence:
 1. CLI flag

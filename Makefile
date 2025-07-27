@@ -57,7 +57,7 @@ ifdef VERBOSE
 	VERBOSE_FLAG_LONG := --verbose
 endif
 
-export GO_BUILD=CGO_ENABLED=0 GOOS=$(GOOS) $(GO) -C $(MAKEFILE_DIR) build $(GO_TAGS) -ldflags "$(GO_BUILD_LDFLAGS) $(VERBOSE_FLAG) -X $(PACKAGE)/pkg/version.Version=$(VERSION) -X $(PACKAGE)/pkg/version.Revision=$(REVISION)"
+export GO_BUILD=CGO_ENABLED=1 GOOS=$(GOOS) $(GO) -C $(MAKEFILE_DIR) build $(GO_TAGS) -ldflags "$(GO_BUILD_LDFLAGS) $(VERBOSE_FLAG) -X $(PACKAGE)/pkg/version.Version=$(VERSION) -X $(PACKAGE)/pkg/version.Revision=$(REVISION)"
 
 ifndef NO_COLOR
     NC := \033[0m
@@ -300,6 +300,26 @@ artifacts: clean
 	tar $(TAR_OWNER0_FLAGS) -czf $(CURDIR)/_output/nerdctl-$(VERSION_TRIMMED)-go-mod-vendor.tar.gz $(MAKEFILE_DIR)/go.mod $(MAKEFILE_DIR)/go.sum $(MAKEFILE_DIR)/vendor
 	$(call footer, $@)
 
+# ZSTD compression test targets
+.PHONY: test-zstd test-zstd-unit test-zstd-integration test-zstd-benchmark test-zstd-stress test-zstd-all
+
+test-zstd: test-zstd-unit test-zstd-integration ## Run all zstd compression tests
+
+test-zstd-unit: ## Run zstd unit tests
+	$(GO) test -v ./pkg/compression/zstd/testsuite/... -tags zstd_unit
+
+test-zstd-integration: ## Run zstd integration tests
+	$(GO) test -v ./pkg/compression/zstd/testsuite/... -tags zstd_integration
+
+test-zstd-benchmark: ## Run zstd performance benchmarks
+	$(GO) test -v ./pkg/compression/zstd/testsuite/... -tags zstd_benchmark -bench=. -benchmem
+
+test-zstd-stress: ## Run zstd stress tests
+	$(GO) test -v ./pkg/compression/zstd/testsuite/... -tags zstd_stress -timeout 30m
+
+test-zstd-all: ## Run all zstd tests including benchmarks and stress tests
+	$(GO) test -v ./pkg/compression/zstd/testsuite/... -tags zstd_all -bench=. -benchmem -timeout 30m
+
 .PHONY: \
 	all \
 	lint \
@@ -313,4 +333,5 @@ artifacts: clean
 	fix-go fix-go-all fix-mod \
 	install-dev-tools \
 	test-unit test-unit-race test-unit-bench \
+	test-zstd test-zstd-unit test-zstd-integration test-zstd-benchmark test-zstd-stress test-zstd-all \
 	artifacts

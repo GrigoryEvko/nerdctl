@@ -34,6 +34,7 @@ import (
 	"github.com/containerd/log"
 
 	"github.com/containerd/nerdctl/v2/pkg/buildkitutil"
+	compzstd "github.com/containerd/nerdctl/v2/pkg/compression/zstd"
 	"github.com/containerd/nerdctl/v2/pkg/inspecttypes/dockercompat"
 	"github.com/containerd/nerdctl/v2/pkg/inspecttypes/native"
 	"github.com/containerd/nerdctl/v2/pkg/version"
@@ -123,6 +124,7 @@ func ClientVersion() dockercompat.ClientVersion {
 		Arch:      runtime.GOARCH,
 		Components: []dockercompat.ComponentVersion{
 			buildctlVersion(),
+			compressionVersion(),
 		},
 	}
 }
@@ -288,4 +290,25 @@ func BlockIOWriteIOpsDevice(cgroupManager string) bool {
 // CPURealtime returns whether CPU realtime period is supported or not
 func CPURealtime(cgroupManager string) bool {
 	return getMobySysInfo(cgroupManager).CPURealtime
+}
+
+func compressionVersion() dockercompat.ComponentVersion {
+	compressor := compzstd.GetCompressor()
+	details := map[string]string{
+		"Implementation": compressor.Name(),
+		"MaxLevel":       fmt.Sprintf("%d", compressor.MaxCompressionLevel()),
+	}
+	
+	var version string
+	if compressor.IsLibzstdAvailable() {
+		version = "libzstd (via gozstd)"
+	} else {
+		version = "pure-go (klauspost/compress)"
+	}
+	
+	return dockercompat.ComponentVersion{
+		Name:    "zstd",
+		Version: version,
+		Details: details,
+	}
 }

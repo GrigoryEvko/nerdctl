@@ -51,6 +51,7 @@ import (
 	"github.com/containerd/nerdctl/v2/pkg/api/types"
 	"github.com/containerd/nerdctl/v2/pkg/clientutil"
 	"github.com/containerd/nerdctl/v2/pkg/cmd/image"
+	compzstd "github.com/containerd/nerdctl/v2/pkg/compression/zstd"
 	"github.com/containerd/nerdctl/v2/pkg/containerutil"
 	"github.com/containerd/nerdctl/v2/pkg/imgutil"
 	"github.com/containerd/nerdctl/v2/pkg/labels"
@@ -492,7 +493,22 @@ func createDiff(ctx context.Context, name string, sn snapshots.Snapshotter, cs c
 			estargz.WithChunkSize(opts.ZstdChunkedChunkSize),
 		}
 
-		convertFunc := zstdchunkedconvert.LayerConvertFuncWithCompressionLevel(zstd.EncoderLevelFromZstd(opts.ZstdChunkedCompressionLevel), esgzOpts...)
+		// Get the appropriate compressor
+		compressor := compzstd.GetCompressor()
+		
+		// Validate compression level
+		if opts.ZstdChunkedCompressionLevel > compressor.MaxCompressionLevel() {
+			log.G(ctx).Warnf("Requested zstd:chunked level %d exceeds maximum %d for %s, using maximum", 
+				opts.ZstdChunkedCompressionLevel, compressor.MaxCompressionLevel(), compressor.Name())
+			opts.ZstdChunkedCompressionLevel = compressor.MaxCompressionLevel()
+		}
+
+		// Note: stargz-snapshotter's LayerConvertFuncWithCompressionLevel expects an encoder level
+		// from klauspost/compress. When we update stargz-snapshotter, we'll pass the raw level.
+		// For now, we need to import klauspost to get the encoder level.
+		// TODO: Update this when stargz-snapshotter is updated to use the compression abstraction
+		convertFunc := zstdchunkedconvert.LayerConvertFuncWithCompressionLevel(
+			getEncoderLevelForStargz(opts.ZstdChunkedCompressionLevel), esgzOpts...)
 
 		zstdchunkedDesc, err := convertFunc(ctx, cs, newDesc)
 		if err != nil {
@@ -571,4 +587,10 @@ func uniquePart() string {
 	// Ignore read failures, just decreases uniqueness
 	rand.Read(b[:])
 	return fmt.Sprintf("%d-%s", t.Nanosecond(), base64.URLEncoding.EncodeToString(b[:]))
+}
+
+// getEncoderLevelForStargz maps compression level to klauspost encoder level
+// This is a temporary helper until stargz-snapshotter is updated to use the compression abstraction
+func getEncoderLevelForStargz(level int) zstd.EncoderLevel {
+	return zstd.EncoderLevelFromZstd(level)
 }

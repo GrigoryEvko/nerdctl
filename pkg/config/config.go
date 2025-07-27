@@ -26,26 +26,37 @@ import (
 // Config corresponds to nerdctl.toml .
 // See docs/config.md .
 type Config struct {
-	Debug            bool     `toml:"debug"`
-	DebugFull        bool     `toml:"debug_full"`
-	Address          string   `toml:"address"`
-	Namespace        string   `toml:"namespace"`
-	Snapshotter      string   `toml:"snapshotter"`
-	CNIPath          string   `toml:"cni_path"`
-	CNINetConfPath   string   `toml:"cni_netconfpath"`
-	DataRoot         string   `toml:"data_root"`
-	CgroupManager    string   `toml:"cgroup_manager"`
-	InsecureRegistry bool     `toml:"insecure_registry"`
-	HostsDir         []string `toml:"hosts_dir"`
-	Experimental     bool     `toml:"experimental"`
-	HostGatewayIP    string   `toml:"host_gateway_ip"`
-	BridgeIP         string   `toml:"bridge_ip, omitempty"`
-	KubeHideDupe     bool     `toml:"kube_hide_dupe"`
-	CDISpecDirs      []string `toml:"cdi_spec_dirs,omitempty"` // CDISpecDirs is a list of directories in which CDI specifications can be found.
-	UsernsRemap      string   `toml:"userns_remap, omitempty"`
-	DNS              []string `toml:"dns,omitempty"`
-	DNSOpts          []string `toml:"dns_opts,omitempty"`
-	DNSSearch        []string `toml:"dns_search,omitempty"`
+	Debug            bool                `toml:"debug"`
+	DebugFull        bool                `toml:"debug_full"`
+	Address          string              `toml:"address"`
+	Namespace        string              `toml:"namespace"`
+	Snapshotter      string              `toml:"snapshotter"`
+	CNIPath          string              `toml:"cni_path"`
+	CNINetConfPath   string              `toml:"cni_netconfpath"`
+	DataRoot         string              `toml:"data_root"`
+	CgroupManager    string              `toml:"cgroup_manager"`
+	InsecureRegistry bool                `toml:"insecure_registry"`
+	HostsDir         []string            `toml:"hosts_dir"`
+	Experimental     bool                `toml:"experimental"`
+	HostGatewayIP    string              `toml:"host_gateway_ip"`
+	BridgeIP         string              `toml:"bridge_ip, omitempty"`
+	KubeHideDupe     bool                `toml:"kube_hide_dupe"`
+	CDISpecDirs      []string            `toml:"cdi_spec_dirs,omitempty"` // CDISpecDirs is a list of directories in which CDI specifications can be found.
+	UsernsRemap      string              `toml:"userns_remap, omitempty"`
+	DNS              []string            `toml:"dns,omitempty"`
+	DNSOpts          []string            `toml:"dns_opts,omitempty"`
+	DNSSearch        []string            `toml:"dns_search,omitempty"`
+	Compression      *CompressionConfig  `toml:"compression,omitempty"`
+}
+
+// CompressionConfig contains compression-related settings
+type CompressionConfig struct {
+	// ZstdImplementation specifies which zstd implementation to use: "auto", "klauspost", "gozstd"
+	ZstdImplementation string `toml:"zstd_implementation,omitempty"`
+	// ZstdCompressionLevel default compression level for zstd (1-22)
+	ZstdCompressionLevel int `toml:"zstd_compression_level,omitempty"`
+	// ZstdChunkedCompressionLevel default compression level for zstd:chunked (1-22)
+	ZstdChunkedCompressionLevel int `toml:"zstd_chunked_compression_level,omitempty"`
 }
 
 // New creates a default Config object statically,
@@ -71,5 +82,6 @@ func New() *Config {
 		DNS:              []string{},
 		DNSOpts:          []string{},
 		DNSSearch:        []string{},
+		Compression:      nil, // Default to nil, which means use auto-detection
 	}
 }
