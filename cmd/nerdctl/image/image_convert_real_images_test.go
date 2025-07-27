@@ -24,7 +24,6 @@ import (
 
 	"github.com/containerd/nerdctl/v2/pkg/testutil"
 	"github.com/containerd/nerdctl/v2/pkg/testutil/nerdtest"
-	"github.com/containerd/nerdctl/v2/pkg/testutil/test"
 )
 
 // TestImageConvertRealImagesZstd tests zstd and zstdchunked conversion with real images
