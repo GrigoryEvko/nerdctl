@@ -57,7 +57,7 @@ ifdef VERBOSE
 	VERBOSE_FLAG_LONG := --verbose
 endif
 
-export GO_BUILD=CGO_ENABLED=1 GOOS=$(GOOS) $(GO) -C $(MAKEFILE_DIR) build $(GO_TAGS) -ldflags "$(GO_BUILD_LDFLAGS) $(VERBOSE_FLAG) -X $(PACKAGE)/pkg/version.Version=$(VERSION) -X $(PACKAGE)/pkg/version.Revision=$(REVISION)"
+export GO_BUILD=CGO_LDFLAGS_ALLOW='-flto.*' CGO_ENABLED=1 GOOS=$(GOOS) $(GO) -C $(MAKEFILE_DIR) build $(GO_TAGS) -ldflags "$(GO_BUILD_LDFLAGS) $(VERBOSE_FLAG) -X $(PACKAGE)/pkg/version.Version=$(VERSION) -X $(PACKAGE)/pkg/version.Revision=$(REVISION) -linkmode=external"
 
 ifndef NO_COLOR
     NC := \033[0m
@@ -237,17 +237,17 @@ install-dev-tools:
 ##########################
 test-unit:
 	$(call title, $@)
-	@go test $(VERBOSE_FLAG) $(MAKEFILE_DIR)/pkg/...
+	@CGO_LDFLAGS_ALLOW='-flto.*' go test -ldflags="-linkmode=external" $(VERBOSE_FLAG) $(MAKEFILE_DIR)/pkg/...
 	$(call footer, $@)
 
 test-unit-bench:
 	$(call title, $@)
-	@go test $(VERBOSE_FLAG) $(MAKEFILE_DIR)/pkg/... -bench=.
+	@CGO_LDFLAGS_ALLOW='-flto.*' go test -ldflags="-linkmode=external" $(VERBOSE_FLAG) $(MAKEFILE_DIR)/pkg/... -bench=.
 	$(call footer, $@)
 
 test-unit-race:
 	$(call title, $@)
-	@go test $(VERBOSE_FLAG) $(MAKEFILE_DIR)/pkg/... -race
+	@CGO_LDFLAGS_ALLOW='-flto.*' go test -ldflags="-linkmode=external" $(VERBOSE_FLAG) $(MAKEFILE_DIR)/pkg/... -race
 	$(call footer, $@)
 
 ##########################
@@ -306,19 +306,19 @@ artifacts: clean
 test-zstd: test-zstd-unit test-zstd-integration ## Run all zstd compression tests
 
 test-zstd-unit: ## Run zstd unit tests
-	$(GO) test -v ./pkg/compression/zstd/testsuite/... -tags zstd_unit
+	CGO_LDFLAGS_ALLOW='-flto.*' $(GO) test -ldflags="-linkmode=external" -v ./pkg/compression/zstd/testsuite/... -tags zstd_unit
 
 test-zstd-integration: ## Run zstd integration tests
-	$(GO) test -v ./pkg/compression/zstd/testsuite/... -tags zstd_integration
+	CGO_LDFLAGS_ALLOW='-flto.*' $(GO) test -ldflags="-linkmode=external" -v ./pkg/compression/zstd/testsuite/... -tags zstd_integration
 
 test-zstd-benchmark: ## Run zstd performance benchmarks
-	$(GO) test -v ./pkg/compression/zstd/testsuite/... -tags zstd_benchmark -bench=. -benchmem
+	CGO_LDFLAGS_ALLOW='-flto.*' $(GO) test -ldflags="-linkmode=external" -v ./pkg/compression/zstd/testsuite/... -tags zstd_benchmark -bench=. -benchmem
 
 test-zstd-stress: ## Run zstd stress tests
-	$(GO) test -v ./pkg/compression/zstd/testsuite/... -tags zstd_stress -timeout 30m
+	CGO_LDFLAGS_ALLOW='-flto.*' $(GO) test -ldflags="-linkmode=external" -v ./pkg/compression/zstd/testsuite/... -tags zstd_stress -timeout 30m
 
 test-zstd-all: ## Run all zstd tests including benchmarks and stress tests
-	$(GO) test -v ./pkg/compression/zstd/testsuite/... -tags zstd_all -bench=. -benchmem -timeout 30m
+	CGO_LDFLAGS_ALLOW='-flto.*' $(GO) test -ldflags="-linkmode=external" -v ./pkg/compression/zstd/testsuite/... -tags zstd_all -bench=. -benchmem -timeout 30m
 
 .PHONY: \
 	all \

@@ -195,6 +195,7 @@ func TestCompressionRatio(t *testing.T) {
 	levels := []int{1, 3, 11, 22}
 	
 	for _, level := range levels {
+		level := level // capture range variable
 		t.Run(fmt.Sprintf("PureGo_Level%d", level), func(t *testing.T) {
 			if level > 11 {
 				t.Skip("Pure Go only supports up to level 11")
