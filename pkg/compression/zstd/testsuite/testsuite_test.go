@@ -130,9 +130,13 @@ func TestEdgeCases(t *testing.T) {
 				_, err := impl.Compressor.NewWriter(io.Discard, -1)
 				assert.Error(t, err)
 
-				// Test excessive level
-				_, err = impl.Compressor.NewWriter(io.Discard, 100)
-				assert.Error(t, err)
+				// Test excessive level - should be capped, not error
+				writer, err := impl.Compressor.NewWriter(io.Discard, 100)
+				assert.NoError(t, err, "High compression levels should be capped, not error")
+				if err == nil {
+					err = writer.Close()
+					assert.NoError(t, err)
+				}
 			})
 
 			t.Run("CorruptedData", func(t *testing.T) {

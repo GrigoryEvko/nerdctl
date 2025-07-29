@@ -28,12 +28,12 @@ var (
 
 // GetUmask retrieves the current umask.
 func GetUmask() uint32 {
+	mu.Lock()
+	defer mu.Unlock()
+
 	if cMask != -1 {
 		return uint32(cMask)
 	}
-
-	mu.Lock()
-	defer mu.Unlock()
 
 	cMask = umask(0)
 

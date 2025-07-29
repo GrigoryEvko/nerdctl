@@ -169,4 +169,4 @@ require (
 
 replace github.com/containerd/nerdctl/mod/tigron v0.0.0 => ./mod/tigron
 
-replace github.com/containerd/stargz-snapshotter => github.com/GrigoryEvko/stargz-snapshotter v0.17.2
+replace github.com/containerd/stargz-snapshotter => github.com/GrigoryEvko/stargz-snapshotter v0.17.3

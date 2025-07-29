@@ -39,6 +39,8 @@ func TestReadRotatedJSONLog(t *testing.T) {
 	stdoutBuf := &bytes.Buffer{}
 	stderrBuf := &bytes.Buffer{}
 	containerStopped := make(chan os.Signal)
+	// Channel to signal when viewLogsJSONFileDirect is done
+	viewLogsDone := make(chan struct{})
 	// Start to follow the container's log.
 	fileName := file.Name()
 	go func() {
@@ -47,6 +49,7 @@ func TestReadRotatedJSONLog(t *testing.T) {
 			LogPath: fileName,
 		}
 		viewLogsJSONFileDirect(lvOpts, file.Name(), stdoutBuf, stderrBuf, containerStopped)
+		close(viewLogsDone)
 	}()
 
 	// log in stdout
@@ -103,6 +106,9 @@ func TestReadRotatedJSONLog(t *testing.T) {
 	time.Sleep(2 * time.Second)
 	// Make the function ReadLogs end.
 	close(containerStopped)
+
+	// Wait for viewLogsJSONFileDirect to complete before reading buffers
+	<-viewLogsDone
 
 	if expectedStdout != stdoutBuf.String() {
 		t.Errorf("expected: %s, actual: %s", expectedStdout, stdoutBuf.String())

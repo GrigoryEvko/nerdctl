@@ -245,6 +245,8 @@ func TestReadRotatedLog(t *testing.T) {
 	stdoutBuf := &bytes.Buffer{}
 	stderrBuf := &bytes.Buffer{}
 	containerStoped := make(chan os.Signal)
+	// Channel to signal when ReadLogs is done
+	readLogsDone := make(chan struct{})
 	// Start to follow the container's log.
 	fileName := file.Name()
 	go func() {
@@ -253,6 +255,7 @@ func TestReadRotatedLog(t *testing.T) {
 			LogPath: fileName,
 		}
 		_ = ReadLogs(lvOpts, stdoutBuf, stderrBuf, containerStoped)
+		close(readLogsDone)
 	}()
 
 	// log in stdout
@@ -307,6 +310,9 @@ func TestReadRotatedLog(t *testing.T) {
 	time.Sleep(2 * time.Second)
 	// Make the function ReadLogs end.
 	close(containerStoped)
+
+	// Wait for ReadLogs to complete before reading buffers
+	<-readLogsDone
 
 	if expectedStdout != stdoutBuf.String() {
 		t.Errorf("expected: %s, acoutal: %s", expectedStdout, stdoutBuf.String())

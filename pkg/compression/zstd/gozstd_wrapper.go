@@ -51,9 +51,13 @@ func (g *GozstdCompressor) NewWriter(w io.Writer, level int) (WriteFlushCloser, 
 		return nil, fmt.Errorf("libzstd not available")
 	}
 	
-	// Validate compression level
-	if level < 0 || level > 22 {
-		return nil, fmt.Errorf("invalid compression level %d: must be between 0 and 22", level)
+	// Validate and cap compression level
+	if level < 0 {
+		return nil, fmt.Errorf("invalid compression level %d: must be non-negative", level)
+	}
+	// Cap levels > 22 to 22
+	if level > 22 {
+		level = 22
 	}
 	
 	// Use default level if 0 is specified

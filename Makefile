@@ -237,17 +237,17 @@ install-dev-tools:
 ##########################
 test-unit:
 	$(call title, $@)
-	@CGO_LDFLAGS_ALLOW='-flto.*' go test -ldflags="-linkmode=external" $(VERBOSE_FLAG) $(MAKEFILE_DIR)/pkg/...
+	@CGO_LDFLAGS_ALLOW='-flto.*' go test -ldflags="-linkmode=external" $(VERBOSE_FLAG) ./pkg/...
 	$(call footer, $@)
 
 test-unit-bench:
 	$(call title, $@)
-	@CGO_LDFLAGS_ALLOW='-flto.*' go test -ldflags="-linkmode=external" $(VERBOSE_FLAG) $(MAKEFILE_DIR)/pkg/... -bench=.
+	@CGO_LDFLAGS_ALLOW='-flto.*' go test -ldflags="-linkmode=external" $(VERBOSE_FLAG) ./pkg/... -bench=.
 	$(call footer, $@)
 
 test-unit-race:
 	$(call title, $@)
-	@CGO_LDFLAGS_ALLOW='-flto.*' go test -ldflags="-linkmode=external" $(VERBOSE_FLAG) $(MAKEFILE_DIR)/pkg/... -race
+	@CGO_LDFLAGS_ALLOW='-flto.*' go test -ldflags="-linkmode=external" $(VERBOSE_FLAG) ./pkg/... -race
 	$(call footer, $@)
 
 ##########################
